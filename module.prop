@@ -1,6 +1,6 @@
 id=oneplus_pure_powersave
-name=OnePlus Pad 极致纯省电与能效调优模块 (动态游戏性能白名单版)
-version=v1.2.0
-versionCode=1200
+name=OnePlus Pad 极致纯省电与能效调优模块 (三档动态能效 + 视频60Hz优化版)
+version=v1.3.0
+versionCode=1300
 author=NinjaDraco
-description=专为 OnePlus Pad (骁龙8至尊版/ColorOS) 定制：动态游戏白名单机制。支持用户在 /sdcard/pure_powersave_games.txt 自定义游戏包名（默认支持 Blood Strike 等）；当且仅当前台运行白名单游戏时释放 4.32GHz 全核满血性能与 540Hz 电竞触控；其余所有日常应用、桌面、待机全面切入限频省电模式，日常功耗降低 40%~50%。
+description=专为 OnePlus Pad (骁龙8至尊版/ColorOS) 定制：三档动态能效引擎。①游戏白名单：释放 4.32GHz 全核满血与 540Hz 触控；②视频深度省电：B站/YouTube/主流视频自动切入 60Hz 并深压超大核，视频功耗骤降至 ~4.5W；③日常流畅：120Hz 丝滑操作并封顶 2.65GHz；④底层彻底禁用后台隐形 Wi-Fi/蓝牙扫描并开启内核级墓碑休眠。

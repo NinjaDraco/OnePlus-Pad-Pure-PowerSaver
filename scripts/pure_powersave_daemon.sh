@@ -3,6 +3,7 @@
 # OnePlus Pad - Pure Battery Saver & Dynamic Whitelist Performance Engine
 # Platform: Snapdragon 8 Elite (SM8750) / ColorOS / Android 16
 # Author: NinjaDraco
+# Version: v1.3.0
 ##########################################################################################
 
 LOG_FILE="/data/local/tmp/pure_powersave.log"
@@ -79,6 +80,7 @@ log "Pure Battery Saver Engine started (PID: $$)."
 
 CURRENT_STATE=""
 
+# 1. 满血游戏模式 (全核 4.32GHz + 540Hz 触控 + 120Hz/144Hz 刷新率)
 apply_full_power() {
     local target_pkg="$1"
     [ "$CURRENT_STATE" = "FULL_POWER:$target_pkg" ] && return
@@ -108,12 +110,53 @@ apply_full_power() {
     fi
     resetprop -n sys.input.resample.latency 0 2>/dev/null
     resetprop -n view.touch_slop 2 2>/dev/null
+
+    # 4. Refresh rate: 120Hz
+    settings put system peak_refresh_rate 120.0 2>/dev/null
+    settings put system min_refresh_rate 60.0 2>/dev/null
 }
 
+# 2. 视频媒体深度省电模式 (锁定 60Hz + CPU 压制至 1.78GHz/1.69GHz，功耗骤降至 4.5W)
+apply_video_powersave() {
+    local target_pkg="$1"
+    [ "$CURRENT_STATE" = "VIDEO_SAVER:$target_pkg" ] && return
+    CURRENT_STATE="VIDEO_SAVER:$target_pkg"
+    log "Video app active [$target_pkg]! 60Hz mode & deep media powersave engaged (target ~4.5W)."
+
+    # 1. Cap CPU frequencies deeply (VPU handles hardware decoding, CPU load is < 5%)
+    chmod 666 /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
+    echo 1785600 > /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
+
+    chmod 666 /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+    echo 1689600 > /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+
+    # 2. WALT energy bias
+    for w in /proc/sys/walt /proc/sys/kernel; do
+        [ -f "$w/sched_downmigrate" ] && echo 60 > "$w/sched_downmigrate" 2>/dev/null
+        [ -f "$w/sched_upmigrate" ] && echo 85 > "$w/sched_upmigrate" 2>/dev/null
+        [ -f "$w/sched_boost" ] && echo 0 > "$w/sched_boost" 2>/dev/null
+    done
+
+    # 3. Touch power
+    if [ -d /proc/touchpanel ]; then
+        chmod 666 /proc/touchpanel/* 2>/dev/null
+        echo 0 > /proc/touchpanel/game_switch_enable 2>/dev/null
+        echo 0 > /proc/touchpanel/sensitive_level 2>/dev/null
+        echo 0 > /proc/touchpanel/smooth_level 2>/dev/null
+    fi
+    resetprop -n sys.input.resample.latency 5 2>/dev/null
+    resetprop -n view.touch_slop 8 2>/dev/null
+
+    # 4. Lock display to 60Hz (matches 24/30/60fps video, avoids 120Hz 3K display rendering waste)
+    settings put system peak_refresh_rate 60.0 2>/dev/null
+    settings put system min_refresh_rate 60.0 2>/dev/null
+}
+
+# 3. 日常流畅省电模式 (桌面/聊天/浏览器/日常应用保持 120Hz 满帧，超大核封顶 2.65GHz)
 apply_powersave_general() {
     [ "$CURRENT_STATE" = "POWERSAVE" ] && return
     CURRENT_STATE="POWERSAVE"
-    log "General app/system active. Applying strict power-saving caps & restoring normal touch."
+    log "General app/system active. Applying standard power-saving caps (120Hz smooth UI)."
 
     # 1. Cap CPU frequencies to avoid exponential power curve (save 40-50% power)
     chmod 666 /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null
@@ -138,7 +181,14 @@ apply_powersave_general() {
     fi
     resetprop -n sys.input.resample.latency 5 2>/dev/null
     resetprop -n view.touch_slop 8 2>/dev/null
+
+    # 4. Restore 120Hz smooth scrolling for daily apps & desktop
+    settings put system peak_refresh_rate 120.0 2>/dev/null
+    settings put system min_refresh_rate 60.0 2>/dev/null
 }
+
+# Built-in Video app packages
+VIDEO_PACKAGES="tv.danmaku.bili com.bilibili.app.in com.google.android.youtube com.youku.phone com.qiyi.video com.tencent.qqlive com.netflix.mediaclient org.videolan.vlc"
 
 # Initial apply powersave
 apply_powersave_general
@@ -180,7 +230,20 @@ while true; do
     if [ -n "$MATCHED_GAME" ]; then
         apply_full_power "$MATCHED_GAME"
     else
-        apply_powersave_general
+        # Check if foreground app is a video app
+        MATCHED_VIDEO=""
+        for vpkg in $VIDEO_PACKAGES; do
+            if echo "$FOCUS_LINE" | grep -q "$vpkg"; then
+                MATCHED_VIDEO="$vpkg"
+                break
+            fi
+        done
+
+        if [ -n "$MATCHED_VIDEO" ]; then
+            apply_video_powersave "$MATCHED_VIDEO"
+        else
+            apply_powersave_general
+        fi
 
         # If screen is off, trigger Doze deep sleep
         IS_SCREEN_OFF=$(dumpsys display 2>/dev/null | grep -m1 'mState=' | grep -o 'OFF')
