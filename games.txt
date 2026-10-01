@@ -1,0 +1,31 @@
+# ==============================================================================
+# OnePlus Pad 极致纯省电模块 - 游戏/高性能应用白名单列表
+# ==============================================================================
+# 在此处填入您需要【全核满血释放性能 (4.32GHz + 540Hz触控)】的应用包名。
+# 每行一个包名，支持 '#' 开头的注释。
+# 保存此文件后，后台守护进程将自动在 3 秒内热重载生效，无需重启平板！
+# 配置文件优先读取：/sdcard/pure_powersave_games.txt
+# ==============================================================================
+
+# 网易 Blood Strike (血战突击)
+com.netease.newspike
+
+# --- 常用游戏示例（如需开启请去掉开头的 '#'） ---
+# 原神
+# com.miHoYo.Yuanshen
+# 崩坏：星穹铁道
+# com.miHoYo.hkrpg
+# 绝区零
+# com.miHoYo.Nap
+# 王者荣耀
+# com.tencent.tmgp.sgame
+# 和平精英
+# com.tencent.tmgp.pubgmhd
+# 暗区突围
+# com.tencent.tmgp.tiron
+# 三角洲行动
+# com.tencent.tmgp.df
+# 使命召唤手游
+# com.tencent.tmgp.cod
+# 鸣潮
+# com.kurogame.kjqyz.bilibili

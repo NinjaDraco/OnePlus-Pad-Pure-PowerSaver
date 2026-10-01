@@ -1,0 +1,8 @@
+# OnePlus Pad Pure Battery Saver System Properties
+media.stagefright.lowpower=1
+pm.sleep_mode=1
+ro.ril.power_collapse=1
+ro.config.hw_power_saving=true
+wifi.supplicant_scan_interval=300
+debug.sf.latch_unsignaled=1
+persist.sys.power.saver=1
