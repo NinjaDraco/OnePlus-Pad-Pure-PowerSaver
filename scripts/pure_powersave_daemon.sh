@@ -6,8 +6,18 @@
 ##########################################################################################
 
 LOG_FILE="/data/local/tmp/pure_powersave.log"
+PID_FILE="/data/local/tmp/pure_powersave.pid"
 SDCARD_CFG="/sdcard/pure_powersave_games.txt"
 MODULE_CFG="/data/adb/modules/oneplus_pure_powersave/games.txt"
+
+# Ensure single instance
+if [ -f "$PID_FILE" ]; then
+    OLD_PID=$(cat "$PID_FILE" 2>/dev/null)
+    if [ -n "$OLD_PID" ] && [ "$OLD_PID" != "$$" ] && kill -0 "$OLD_PID" 2>/dev/null; then
+        exit 0
+    fi
+fi
+echo $$ > "$PID_FILE"
 
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] [POWERSAVE] $1" >> "$LOG_FILE" 2>/dev/null
@@ -24,6 +34,7 @@ fi
 
 # Ensure user config file exists on /sdcard
 init_user_config() {
+    [ ! -d "/sdcard" ] && return
     if [ ! -f "$SDCARD_CFG" ]; then
         cat << 'EOF' > "$SDCARD_CFG"
 # ==============================================================================
@@ -58,12 +69,13 @@ com.netease.newspike
 # com.kurogame.kjqyz.bilibili
 EOF
         chmod 666 "$SDCARD_CFG" 2>/dev/null
+        log "User whitelist config initialized at $SDCARD_CFG"
     fi
 }
 
 init_user_config
 
-log "Pure Battery Saver Engine initialized. User config located at: $SDCARD_CFG"
+log "Pure Battery Saver Engine started (PID: $$)."
 
 CURRENT_STATE=""
 
@@ -132,6 +144,9 @@ apply_powersave_general() {
 apply_powersave_general
 
 while true; do
+    # Try init user config if sdcard is now mounted
+    [ ! -f "$SDCARD_CFG" ] && init_user_config
+
     # Read active whitelist config
     ACTIVE_CFG=""
     if [ -f "$SDCARD_CFG" ]; then
